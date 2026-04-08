@@ -1,0 +1,37 @@
+# gh-wt configuration
+# Copy this file as .gh-wt.yml to your repository root.
+
+worktree:
+  # Template for worktree path.
+  # Variables: {{.RepoName}}, {{.RepoPath}}, {{.Branch}}, {{.IssueNumber}}
+  path: "../{{.RepoName}}-wt/{{.Branch}}"
+
+  # Copy gitignored files from main worktree to new worktrees.
+  copy-ignored:
+    enabled: false
+    exclude: [".cache/", ".turbo/", "dist/"]
+    # Create symlinks instead of copying for large directories.
+    symlink: ["node_modules"]
+
+branch:
+  # Base branch for new worktrees (default: repo default branch).
+  base: ""
+
+open:
+  # Command to open a worktree in a new terminal session.
+  # Variables: {{.WorktreePath}}, {{.Branch}}, {{.IssueNumber}}
+  # Examples:
+  # command: "ghostty --new-tab --working-directory={{.WorktreePath}} -e claude"
+  # command: "tmux new-window -c {{.WorktreePath}}"
+  # command: "code {{.WorktreePath}}"
+  command: ""
+
+hooks:
+  pre-start: []
+    # - run: "echo 'Creating worktree...'"
+  post-start: []
+    # - run: "npm install"
+    # - run: "claude"
+
+cache:
+  ttl: 60
