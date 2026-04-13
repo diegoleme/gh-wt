@@ -23,6 +23,7 @@ type LinkedIssue struct {
 	Title       string
 	State       string
 	StateReason string
+	Labels      []string
 }
 
 // DisplayState returns a human-readable state for display.
@@ -72,6 +73,11 @@ query($owner: String!, $repo: String!, $branch: String!) {
             title
             state
             stateReason
+            labels(first: 20) {
+              nodes {
+                name
+              }
+            }
           }
         }
         commits(last: 1) {
@@ -122,6 +128,11 @@ func FindPRForBranch(branch string) (*PullRequest, error) {
 							Title       string `json:"title"`
 							State       string `json:"state"`
 							StateReason string `json:"stateReason"`
+							Labels      struct {
+								Nodes []struct {
+									Name string `json:"name"`
+								} `json:"nodes"`
+							} `json:"labels"`
 						} `json:"nodes"`
 					} `json:"closingIssuesReferences"`
 					Commits struct {
@@ -178,11 +189,16 @@ func FindPRForBranch(branch string) (*PullRequest, error) {
 	// Extract linked issue
 	if len(node.ClosingIssuesReferences.Nodes) > 0 {
 		issue := node.ClosingIssuesReferences.Nodes[0]
+		labels := make([]string, len(issue.Labels.Nodes))
+		for i, l := range issue.Labels.Nodes {
+			labels[i] = l.Name
+		}
 		pr.LinkedIssue = &LinkedIssue{
 			Number:      issue.Number,
 			Title:       issue.Title,
 			State:       issue.State,
 			StateReason: issue.StateReason,
+			Labels:      labels,
 		}
 	}
 

@@ -22,6 +22,9 @@ type IssueState struct {
 	State       string `json:"state"`
 	StateReason string `json:"state_reason"`
 	UpdatedAt   string `json:"updated_at"`
+	Labels      []struct {
+		Name string `json:"name"`
+	} `json:"labels"`
 }
 
 // ListOpenIssues returns all open issues from the current repository.
@@ -143,6 +146,54 @@ func DevelopBranch(issueNumber int, branchName string, baseBranch string) error 
 	}
 
 	return nil
+}
+
+// FetchBlockedStatus checks which issues are blocked, in a single batched GraphQL call.
+// Returns a set of issue numbers that have at least one blockedBy relationship.
+func FetchBlockedStatus(issueNumbers []int) (map[int]bool, error) {
+	if len(issueNumbers) == 0 {
+		return nil, nil
+	}
+
+	repo, err := Repo()
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := GraphQLClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Build a batched query using aliases: i42: issue(number: 42) { blockedBy(first: 0) { totalCount } }
+	var q strings.Builder
+	q.WriteString(fmt.Sprintf("query { repository(owner: %q, name: %q) {\n", repo.Owner, repo.Name))
+	for _, n := range issueNumbers {
+		q.WriteString(fmt.Sprintf("  i%d: issue(number: %d) { blockedBy(first: 0) { totalCount } }\n", n, n))
+	}
+	q.WriteString("}}")
+
+	var result struct {
+		Repository map[string]struct {
+			BlockedBy struct {
+				TotalCount int `json:"totalCount"`
+			} `json:"blockedBy"`
+		} `json:"repository"`
+	}
+
+	if err := client.Do(q.String(), nil, &result); err != nil {
+		return nil, err
+	}
+
+	blocked := make(map[int]bool)
+	for _, n := range issueNumbers {
+		key := fmt.Sprintf("i%d", n)
+		if entry, ok := result.Repository[key]; ok && entry.BlockedBy.TotalCount > 0 {
+			blocked[n] = true
+		}
+	}
+
+	return blocked, nil
 }
 
 // AssignIssue assigns the current user to an issue.

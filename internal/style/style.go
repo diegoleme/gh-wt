@@ -9,6 +9,9 @@ import (
 	"github.com/diegoleme/gh-wt/internal/listutil"
 )
 
+// Nerd Font icons used in styling
+const IconBlocked = "\uf023" //
+
 // GitHub UI colors
 var (
 	Green  = lipgloss.NewStyle().Foreground(lipgloss.Color("#238636"))
@@ -22,16 +25,22 @@ func ColorIssue(e listutil.Entry) string {
 	if e.IssueNumber == 0 {
 		return Dim.Render("—")
 	}
+
+	prefix := ""
+	if e.Blocked {
+		prefix = Orange.Render("\uf023") + " "
+	}
+
 	num := fmt.Sprintf("#%d", e.IssueNumber)
 	switch {
 	case e.IssueState == "OPEN" || e.IssueState == "open":
-		return Green.Render(num)
+		return prefix + Green.Render(num)
 	case (e.IssueState == "CLOSED" || e.IssueState == "closed") && e.IssueStateReason == "NOT_PLANNED":
-		return Dim.Render(num)
+		return prefix + Dim.Render(num)
 	case e.IssueState == "CLOSED" || e.IssueState == "closed":
-		return Purple.Render(num)
+		return prefix + Purple.Render(num)
 	default:
-		return Green.Render(num)
+		return prefix + Green.Render(num)
 	}
 }
 

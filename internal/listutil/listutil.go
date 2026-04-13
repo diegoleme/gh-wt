@@ -30,6 +30,7 @@ type Entry struct {
 	ReviewDecision   string   `json:"review_decision,omitempty"`
 	Mergeable        string   `json:"mergeable,omitempty"`
 	MergeStateStatus string   `json:"merge_state_status,omitempty"`
+	Blocked          bool     `json:"blocked"`
 	Merged           bool     `json:"merged"`
 	Current          bool     `json:"current"`
 	HasWorktree      bool     `json:"has_worktree"`
@@ -167,6 +168,13 @@ func BuildIssueEntries() ([]Entry, error) {
 			entry.IssueState = state.State
 			entry.IssueStateReason = state.StateReason
 			entry.IssueUpdatedAt = state.UpdatedAt
+			if len(state.Labels) > 0 {
+				labels := make([]string, len(state.Labels))
+				for j, l := range state.Labels {
+					labels[j] = l.Name
+				}
+				entry.Labels = labels
+			}
 		}
 		entry.LastCommitTime = worktree.LastCommitTime(wt.AbsPath)
 		stale = append(stale, entry)
@@ -217,6 +225,9 @@ func BuildIssueEntries() ([]Entry, error) {
 			entries[i].Merged = true
 		}
 	}
+
+	// 12. Check blocked status
+	markBlocked(entries)
 
 	return entries, nil
 }
@@ -310,6 +321,9 @@ func BuildEntries(opts ...BuildOption) ([]Entry, error) {
 		}
 	}
 
+	// Check blocked status
+	markBlocked(entries)
+
 	return entries, nil
 }
 
@@ -386,6 +400,9 @@ func fetchRemoteInfo(entries []Entry, quiet bool) {
 					entries[i].IssueTitle = pr.LinkedIssue.Title
 					entries[i].IssueState = pr.LinkedIssue.State
 					entries[i].IssueStateReason = pr.LinkedIssue.StateReason
+					if len(pr.LinkedIssue.Labels) > 0 {
+						entries[i].Labels = pr.LinkedIssue.Labels
+					}
 				}
 			}
 			done.Add(1)
@@ -421,6 +438,13 @@ func fetchRemoteInfo(entries []Entry, quiet bool) {
 					entries[i].IssueTitle = state.Title
 					entries[i].IssueState = state.State
 					entries[i].IssueStateReason = state.StateReason
+					if len(state.Labels) > 0 && len(entries[i].Labels) == 0 {
+						labels := make([]string, len(state.Labels))
+						for j, l := range state.Labels {
+							labels[j] = l.Name
+						}
+						entries[i].Labels = labels
+					}
 				}
 				done.Add(1)
 			}(idx)
@@ -430,4 +454,24 @@ func fetchRemoteInfo(entries []Entry, quiet bool) {
 
 	close(stop)
 	<-stopped
+}
+
+func markBlocked(entries []Entry) {
+	var issueNumbers []int
+	for _, e := range entries {
+		if e.IssueNumber > 0 {
+			issueNumbers = append(issueNumbers, e.IssueNumber)
+		}
+	}
+
+	blocked, err := ghclient.FetchBlockedStatus(issueNumbers)
+	if err != nil || len(blocked) == 0 {
+		return
+	}
+
+	for i, e := range entries {
+		if blocked[e.IssueNumber] {
+			entries[i].Blocked = true
+		}
+	}
 }
