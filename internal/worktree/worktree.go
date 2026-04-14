@@ -77,6 +77,9 @@ func branchExists(branch string) bool {
 
 // MergedBranches returns a set of branch names that have been merged into the given base branch.
 // This is a local git operation, no API calls.
+// Branches with no commits ahead of base are excluded — they never diverged
+// (e.g. just created from base) and cannot have been "merged" in any meaningful sense.
+// Actual merges (squash, rebase) are detected via PR state instead.
 func MergedBranches(base string) (map[string]bool, error) {
 	cmd := exec.Command("git", "branch", "--merged", base, "--format=%(refname:short)")
 	output, err := cmd.Output()
@@ -87,9 +90,17 @@ func MergedBranches(base string) (map[string]bool, error) {
 	merged := make(map[string]bool)
 	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
 		line = strings.TrimSpace(line)
-		if line != "" {
-			merged[line] = true
+		if line == "" {
+			continue
 		}
+		// Skip branches with no commits ahead of base — they never diverged.
+		countCmd := exec.Command("git", "rev-list", "--count", base+".."+line)
+		if countOut, err := countCmd.Output(); err == nil {
+			if strings.TrimSpace(string(countOut)) == "0" {
+				continue
+			}
+		}
+		merged[line] = true
 	}
 	return merged, nil
 }
