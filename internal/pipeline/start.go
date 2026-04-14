@@ -3,6 +3,7 @@ package pipeline
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/diegoleme/gh-wt/internal/config"
@@ -45,7 +46,7 @@ func Start(opts StartOpts) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("✓ Issue #%d: %s\n", issue.Number, issue.Title)
+	fmt.Fprintf(os.Stderr, "✓ Issue #%d: %s\n", issue.Number, issue.Title)
 
 	// 2. Generate branch name and create remote branch linked to issue
 	branchName := naming.BranchName(issue.Number, issue.Title)
@@ -63,16 +64,20 @@ func Start(opts StartOpts) error {
 
 	if !opts.NoLink {
 		if err := ghclient.DevelopBranch(issue.Number, branchName, baseBranch); err != nil {
-			fmt.Printf("⚠ Failed to link branch to issue: %s\n", err)
+			fmt.Fprintf(os.Stderr, "⚠ Failed to link branch to issue: %s\n", err)
+			// gh issue develop with --base may write a [branch ""] section
+			// to .git/config when the branch name is empty (e.g. stale link).
+			// Clean it up so it doesn't corrupt subsequent git operations.
+			cleanEmptyBranchConfig()
 		} else {
-			fmt.Printf("✓ Branch linked to issue #%d\n", issue.Number)
+			fmt.Fprintf(os.Stderr, "✓ Branch linked to issue #%d\n", issue.Number)
 		}
 	}
 
 	// 3. Fetch branch and create worktree
 	if err := worktree.FetchBranch(branchName); err != nil {
 		// Branch might not exist on remote (if --no-link), that's ok
-		fmt.Printf("⚠ Fetch failed (will create local branch): %s\n", err)
+		fmt.Fprintf(os.Stderr, "⚠ Fetch failed (will create local branch): %s\n", err)
 	}
 
 	repo, err := ghclient.Repo()
@@ -98,26 +103,26 @@ func Start(opts StartOpts) error {
 	}
 
 	absWtPath, _ := filepath.Abs(wtPath)
-	fmt.Printf("✓ Branch: %s\n", branchName)
-	fmt.Printf("✓ Worktree: %s\n", wtPath)
+	fmt.Fprintf(os.Stderr, "✓ Branch: %s\n", branchName)
+	fmt.Fprintf(os.Stderr, "✓ Worktree: %s\n", wtPath)
 
 	// 4. Assign issue to current user
 	if !opts.NoAssign {
 		if err := ghclient.AssignIssue(issue.Number); err != nil {
-			fmt.Printf("⚠ Failed to assign issue: %s\n", err)
+			fmt.Fprintf(os.Stderr, "⚠ Failed to assign issue: %s\n", err)
 		} else {
-			fmt.Printf("✓ Assigned issue #%d to you\n", issue.Number)
+			fmt.Fprintf(os.Stderr, "✓ Assigned issue #%d to you\n", issue.Number)
 		}
 	}
 
 	if opts.NoHooks {
-		fmt.Printf("\ncd %s\n", absWtPath)
+		fmt.Println(absWtPath)
 		return nil
 	}
 
 	// 5. Pre-start hooks
 	if len(cfg.Hooks.PreStart) > 0 {
-		fmt.Println("Running pre-start hooks...")
+		fmt.Fprintln(os.Stderr, "Running pre-start hooks...")
 		if err := hooks.Run(cfg.Hooks.PreStart, absWtPath); err != nil {
 			return fmt.Errorf("pre-start hook failed: %w", err)
 		}
@@ -132,7 +137,7 @@ func Start(opts StartOpts) error {
 
 	// 7. Post-start hooks
 	if len(cfg.Hooks.PostStart) > 0 {
-		fmt.Println("Running post-start hooks...")
+		fmt.Fprintln(os.Stderr, "Running post-start hooks...")
 		if err := hooks.Run(cfg.Hooks.PostStart, absWtPath); err != nil {
 			return fmt.Errorf("post-start hook failed: %w", err)
 		}
@@ -140,21 +145,28 @@ func Start(opts StartOpts) error {
 
 	// 8. Open (if configured)
 	if cfg.Open.OnStart && cfg.Open.Command != "" {
-		fmt.Println("Opening worktree...")
+		fmt.Fprintln(os.Stderr, "Opening worktree...")
 		if err := open.Run(open.Opts{
 			Command:      cfg.Open.Command,
 			WorktreePath: absWtPath,
 			Branch:       branchName,
 			IssueNumber:  issue.Number,
 		}); err != nil {
-			fmt.Printf("⚠ Open failed: %s\n", err)
+			fmt.Fprintf(os.Stderr, "⚠ Open failed: %s\n", err)
 		} else {
-			fmt.Println("✓ Opened worktree")
+			fmt.Fprintln(os.Stderr, "✓ Opened worktree")
 		}
 	}
 
 	// 9. Print path
-	fmt.Printf("\ncd %s\n", absWtPath)
+	fmt.Println(absWtPath)
 
 	return nil
+}
+
+// cleanEmptyBranchConfig removes a [branch ""] section from .git/config.
+// gh issue develop --base writes branch.<name>.gh-merge-base; when the branch
+// name is empty this corrupts the config and breaks all subsequent git commands.
+func cleanEmptyBranchConfig() {
+	exec.Command("git", "config", "--remove-section", "branch.").CombinedOutput()
 }
