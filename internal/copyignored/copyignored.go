@@ -76,7 +76,7 @@ func Copy(cfg config.CopyIgnoredConfig, sourceDir, targetDir string) error {
 	}
 
 	if copied > 0 || symlinked > 0 {
-		fmt.Printf("✓ Copied %d ignored files, symlinked %d directories\n", copied, symlinked)
+		fmt.Fprintf(os.Stderr, "✓ Copied %d ignored files, symlinked %d directories\n", copied, symlinked)
 	}
 
 	return nil

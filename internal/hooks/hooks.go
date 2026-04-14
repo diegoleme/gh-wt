@@ -15,18 +15,18 @@ func Run(steps []config.HookStep, dir string) error {
 			continue
 		}
 
-		fmt.Printf("  → %s\n", step.Run)
+		fmt.Fprintf(os.Stderr, "  → %s\n", step.Run)
 
 		cmd := exec.Command("sh", "-c", step.Run)
 		cmd.Dir = dir
-		cmd.Stdout = os.Stdout
+		cmd.Stdout = os.Stderr
 		cmd.Stderr = os.Stderr
 
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("hook %q failed: %w", step.Run, err)
 		}
 
-		fmt.Printf("  ✓ %s\n", step.Run)
+		fmt.Fprintf(os.Stderr, "  ✓ %s\n", step.Run)
 	}
 	return nil
 }
