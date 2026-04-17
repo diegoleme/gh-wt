@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/diegoleme/gh-wt/internal/config"
+	ghclient "github.com/diegoleme/gh-wt/internal/gh"
 	"github.com/diegoleme/gh-wt/internal/naming"
 	"github.com/diegoleme/gh-wt/internal/open"
 	"github.com/diegoleme/gh-wt/internal/worktree"
@@ -41,12 +42,20 @@ var openCmd = &cobra.Command{
 		absPath, _ := filepath.Abs(wt.Path)
 		issueNumber, _ := naming.ParseIssueNumber(wt.Branch)
 
+		var issueTitle string
+		if issueNumber > 0 {
+			if issue, err := ghclient.FetchIssue(issueNumber); err == nil {
+				issueTitle = issue.Title
+			}
+		}
+
 		fmt.Printf("Opening %s...\n", wt.Branch)
 		return open.Run(open.Opts{
 			Command:      cfg.Open.Command,
 			WorktreePath: absPath,
 			Branch:       wt.Branch,
 			IssueNumber:  issueNumber,
+			IssueTitle:   issueTitle,
 		})
 	},
 }

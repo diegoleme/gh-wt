@@ -151,6 +151,7 @@ func Start(opts StartOpts) error {
 			WorktreePath: absWtPath,
 			Branch:       branchName,
 			IssueNumber:  issue.Number,
+			IssueTitle:   issue.Title,
 		}); err != nil {
 			fmt.Fprintf(os.Stderr, "⚠ Open failed: %s\n", err)
 		} else {

@@ -13,6 +13,7 @@ type Opts struct {
 	WorktreePath string
 	Branch       string
 	IssueNumber  int
+	IssueTitle   string
 }
 
 // Run executes the open command with template variables resolved.
@@ -47,6 +48,7 @@ func resolveTemplate(opts Opts) (string, error) {
 		"WorktreePath": opts.WorktreePath,
 		"Branch":       opts.Branch,
 		"IssueNumber":  opts.IssueNumber,
+		"IssueTitle":   opts.IssueTitle,
 	}
 
 	var buf strings.Builder
