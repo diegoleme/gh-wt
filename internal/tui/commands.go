@@ -10,7 +10,6 @@ import (
 	"text/template"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/diegoleme/gh-wt/internal/config"
 	"github.com/diegoleme/gh-wt/internal/listutil"
 )
 
@@ -20,7 +19,7 @@ func loadEntries() tea.Msg {
 }
 
 // resolveCommand resolves template variables in a command string.
-func resolveCommand(cmdTemplate string, entry *listutil.Entry, cfg *config.Config, input string) (string, error) {
+func resolveCommand(cmdTemplate string, entry *listutil.Entry, input string) (string, error) {
 	tmpl, err := template.New("cmd").Parse(cmdTemplate)
 	if err != nil {
 		return "", err
@@ -33,7 +32,6 @@ func resolveCommand(cmdTemplate string, entry *listutil.Entry, cfg *config.Confi
 		"IssueTitle":  "",
 		"PRNumber":    0,
 		"Input":       input,
-		"OpenCommand": cfg.Open.Command,
 	}
 
 	if entry != nil {

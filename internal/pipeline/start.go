@@ -11,7 +11,6 @@ import (
 	ghclient "github.com/diegoleme/gh-wt/internal/gh"
 	"github.com/diegoleme/gh-wt/internal/hooks"
 	"github.com/diegoleme/gh-wt/internal/naming"
-	"github.com/diegoleme/gh-wt/internal/open"
 	"github.com/diegoleme/gh-wt/internal/worktree"
 )
 
@@ -33,8 +32,7 @@ type StartOpts struct {
 //  5. Execute pre-start hooks
 //  6. Copy ignored files
 //  7. Execute post-start hooks
-//  8. Open (if on_start)
-//  9. Print path
+//  8. Print path
 func Start(opts StartOpts) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -143,23 +141,7 @@ func Start(opts StartOpts) error {
 		}
 	}
 
-	// 8. Open (if configured)
-	if cfg.Open.OnStart && cfg.Open.Command != "" {
-		fmt.Fprintln(os.Stderr, "Opening worktree...")
-		if err := open.Run(open.Opts{
-			Command:      cfg.Open.Command,
-			WorktreePath: absWtPath,
-			Branch:       branchName,
-			IssueNumber:  issue.Number,
-			IssueTitle:   issue.Title,
-		}); err != nil {
-			fmt.Fprintf(os.Stderr, "⚠ Open failed: %s\n", err)
-		} else {
-			fmt.Fprintln(os.Stderr, "✓ Opened worktree")
-		}
-	}
-
-	// 9. Print path
+	// 8. Print path
 	fmt.Println(absWtPath)
 
 	return nil

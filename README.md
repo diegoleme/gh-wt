@@ -29,7 +29,6 @@ gh wt start <issue>    # Create branch + worktree + link issue + run hooks
 gh wt list             # List worktrees with PR/CI/review status
 gh wt prune            # Remove worktrees for merged/closed branches
 gh wt prune <number>   # Remove worktree for a specific issue or PR
-gh wt open <issue>     # Open worktree in a new terminal session
 gh wt status           # Show current worktree state
 ```
 
@@ -40,10 +39,6 @@ Two-level config: user preferences + repo settings.
 ### User config (`~/.config/gh-wt/config.yml`)
 
 ```yaml
-open:
-  command: "zellij action new-pane --stacked --cwd {{.WorktreePath}} -- claude"
-  on_start: true
-
 tui:
   keybindings:
     - key: s
@@ -89,7 +84,7 @@ hooks:
 | `command` | string | Shell command with template variables |
 | `input` | string | Prompt for user input before executing |
 | `confirm` | bool | Ask for confirmation (y/N) |
-| `requires` | []string | Show only when conditions are met: `pr`, `issue`, `worktree`, `open_command` |
+| `requires` | []string | Show only when conditions are met: `pr`, `issue`, `worktree` |
 | `output` | bool | Show command output in a floating dialog |
 | `interactive` | bool | Hand over terminal to the command |
 
@@ -103,7 +98,6 @@ hooks:
 | `{{.IssueTitle}}` | Issue title |
 | `{{.PRNumber}}` | PR number |
 | `{{.Input}}` | User input from `input` prompt |
-| `{{.OpenCommand}}` | Resolved open.command from config |
 
 ## Tech stack
 

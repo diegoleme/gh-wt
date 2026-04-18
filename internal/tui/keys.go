@@ -30,7 +30,7 @@ var builtins = builtinKeys{
 }
 
 // checkRequires returns true if all of the keybinding's requires conditions are met.
-func checkRequires(kb config.Keybinding, entry *listutil.Entry, cfg *config.Config) bool {
+func checkRequires(kb config.Keybinding, entry *listutil.Entry) bool {
 	if len(kb.Requires) == 0 {
 		return true
 	}
@@ -38,21 +38,19 @@ func checkRequires(kb config.Keybinding, entry *listutil.Entry, cfg *config.Conf
 		return false
 	}
 	for _, req := range kb.Requires {
-		if !checkRequire(req, entry, cfg) {
+		if !checkRequire(req, entry) {
 			return false
 		}
 	}
 	return true
 }
 
-func checkRequire(req string, entry *listutil.Entry, cfg *config.Config) bool {
+func checkRequire(req string, entry *listutil.Entry) bool {
 	switch req {
 	case "pr":
 		return entry.PRNumber > 0
 	case "issue":
 		return entry.IssueNumber > 0
-	case "open_command":
-		return cfg.Open.Command != ""
 	case "branch":
 		return entry.HasWorktree && entry.Branch != ""
 	case "worktree":
@@ -63,10 +61,10 @@ func checkRequire(req string, entry *listutil.Entry, cfg *config.Config) bool {
 }
 
 // visibleBindings returns keybindings that are visible for the current entry.
-func visibleBindings(bindings []config.Keybinding, entry *listutil.Entry, cfg *config.Config) []config.Keybinding {
+func visibleBindings(bindings []config.Keybinding, entry *listutil.Entry) []config.Keybinding {
 	var visible []config.Keybinding
 	for _, kb := range bindings {
-		if checkRequires(kb, entry, cfg) {
+		if checkRequires(kb, entry) {
 			visible = append(visible, kb)
 		}
 	}

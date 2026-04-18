@@ -558,7 +558,7 @@ func (m Model) viewFooter() string {
 	)
 
 	entry := m.selectedEntry()
-	for _, kb := range visibleBindings(m.keybindings, entry, m.cfg) {
+	for _, kb := range visibleBindings(m.keybindings, entry) {
 		keys = append(keys, key.NewBinding(
 			key.WithKeys(kb.Key),
 			key.WithHelp(kb.Key, kb.Label),

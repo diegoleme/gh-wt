@@ -171,7 +171,7 @@ func (m Model) executeKeybinding(kb *config.Keybinding) (tea.Model, tea.Cmd) {
 	entry := m.selectedEntry()
 
 	// Check requires
-	if !checkRequires(*kb, entry, m.cfg) {
+	if !checkRequires(*kb, entry) {
 		m.statusMsg = fmt.Sprintf("✗ %s: requires %s", kb.Label, strings.Join(kb.Requires, ", "))
 		return m, nil
 	}
@@ -201,7 +201,7 @@ func (m Model) executeKeybinding(kb *config.Keybinding) (tea.Model, tea.Cmd) {
 func (m Model) runCommand(kb *config.Keybinding, input string) (tea.Model, tea.Cmd) {
 	entry := m.selectedEntry()
 
-	resolved, err := resolveCommand(kb.Command, entry, m.cfg, input)
+	resolved, err := resolveCommand(kb.Command, entry, input)
 	if err != nil {
 		m.statusMsg = fmt.Sprintf("✗ %s: %s", kb.Label, err)
 		return m, nil

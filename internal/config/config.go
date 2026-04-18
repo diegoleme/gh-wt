@@ -8,12 +8,11 @@ import (
 )
 
 type Config struct {
-	Worktree    WorktreeConfig `mapstructure:"worktree"`
-	Branch      BranchConfig   `mapstructure:"branch"`
-	Open        OpenConfig     `mapstructure:"open"`
-	Hooks       HooksConfig    `mapstructure:"hooks"`
-	Cache       CacheConfig    `mapstructure:"cache"`
-	TUI         TUIConfig      `mapstructure:"tui"`
+	Worktree WorktreeConfig `mapstructure:"worktree"`
+	Branch   BranchConfig   `mapstructure:"branch"`
+	Hooks    HooksConfig    `mapstructure:"hooks"`
+	Cache    CacheConfig    `mapstructure:"cache"`
+	TUI      TUIConfig      `mapstructure:"tui"`
 }
 
 type TUIConfig struct {
@@ -46,11 +45,6 @@ type BranchConfig struct {
 	Base string `mapstructure:"base"`
 }
 
-type OpenConfig struct {
-	Command string `mapstructure:"command"`
-	OnStart bool   `mapstructure:"on_start"`
-}
-
 type HooksConfig struct {
 	PreStart  []HookStep `mapstructure:"pre-start"`
 	PostStart []HookStep `mapstructure:"post-start"`
@@ -72,8 +66,6 @@ func Load() (*Config, error) {
 	v.SetDefault("worktree.path", "../{{.RepoName}}-wt/{{.Branch}}")
 	v.SetDefault("worktree.copy-ignored.enabled", false)
 	v.SetDefault("branch.base", "")
-	v.SetDefault("open.command", "")
-	v.SetDefault("open.on_start", false)
 	v.SetDefault("cache.ttl", 60)
 
 	// User-level config (base)
