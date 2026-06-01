@@ -1,0 +1,33 @@
+# gh-wt user configuration
+# Settings here apply to all repos. Repo .gh-wt.yml overrides these.
+#
+# This default is tailored for a zellij + claude workflow.
+# Workspace: zellij --layout ~/.config/gh-wt/workspace.kdl
+
+tui:
+  keybindings:
+    - key: s
+      label: "start"
+      command: "gh wt start {{.IssueNumber}}"
+      output: true
+
+    - key: enter
+      label: "open"
+      requires:
+        - worktree
+      # The leading '#' is quoted so sh doesn't read it as a comment.
+      command: "~/.config/gh-wt/open-or-focus.sh '#'{{.IssueNumber}}-{{.IssueTitle}} {{.Path}}"
+
+    - key: d
+      label: "delete"
+      confirm: true
+      requires:
+        - worktree
+      command: "git worktree remove {{.Path}} --force && git branch -D {{.Branch}}"
+      output: true
+
+    - key: w
+      label: "open web"
+      requires:
+        - issue
+      command: "if [ {{.PRNumber}} -gt 0 ]; then gh pr view {{.PRNumber}} --web; else gh issue view {{.IssueNumber}} --web; fi"

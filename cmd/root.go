@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/diegoleme/gh-wt/internal/setup"
 	"github.com/diegoleme/gh-wt/internal/tui"
 	"github.com/spf13/cobra"
 )
@@ -13,6 +14,10 @@ var rootCmd = &cobra.Command{
 	Short: "Worktree-driven development workflow for GitHub",
 	Long:  `gh-wt manages the lifecycle of git worktrees linked to GitHub issues. One issue = one branch = one worktree = one PR.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if err := setup.MaybeRun(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 		if err := tui.Run(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
