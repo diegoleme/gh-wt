@@ -18,8 +18,26 @@ func loadEntries() tea.Msg {
 	return entriesLoadedMsg{entries: entries, err: err}
 }
 
+// entryKey returns a stable identifier for an entry, used to track per-card
+// processing state. It must survive a reload of the entries slice, so it is
+// keyed by issue number (or branch/path for worktrees without an issue)
+// rather than by slice index.
+func entryKey(e *listutil.Entry) string {
+	if e == nil {
+		return ""
+	}
+	switch {
+	case e.IssueNumber > 0:
+		return fmt.Sprintf("issue:%d", e.IssueNumber)
+	case e.Branch != "":
+		return "branch:" + e.Branch
+	default:
+		return "path:" + e.Path
+	}
+}
+
 // shellQuote wraps s in single quotes safe for POSIX shells, escaping any
-// embedded single quotes via the standard '\'' trick. Used internally by
+// embedded single quotes via the standard '\” trick. Used internally by
 // shellSafe so template authors don't have to think about it.
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
@@ -87,14 +105,14 @@ func execCommand(label, command string, refresh bool) tea.Cmd {
 // execFireAndForget runs a command that inherits the process environment
 // but discards output. Used for commands like `zellij action` that need
 // access to the terminal session context.
-func execFireAndForget(label, command string) tea.Cmd {
+func execFireAndForget(label, entryKey, command string) tea.Cmd {
 	return func() tea.Msg {
 		cmd := exec.Command("sh", "-c", command)
 		cmd.Stdin = nil
 		cmd.Stdout = nil
 		cmd.Stderr = nil
 		err := cmd.Run()
-		return commandFinishedMsg{label: label, err: err, refresh: false}
+		return commandFinishedMsg{label: label, entryKey: entryKey, err: err, refresh: false}
 	}
 }
 

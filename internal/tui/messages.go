@@ -8,9 +8,10 @@ type entriesLoadedMsg struct {
 }
 
 type commandFinishedMsg struct {
-	label   string
-	err     error
-	refresh bool
+	label    string
+	entryKey string // which card was processing this command ("" if none)
+	err      error
+	refresh  bool
 }
 
 type commandOutputMsg struct {

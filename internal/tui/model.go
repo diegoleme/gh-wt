@@ -13,13 +13,13 @@ import (
 type appState int
 
 const (
-	stateLoading       appState = iota
+	stateLoading appState = iota
 	stateList
 	stateInput
 	stateConfirmDelete
 	stateRunning
-	stateOutput        // showing command output in dialog
-	stateOutputDone    // command finished, press key to close
+	stateOutput     // showing command output in dialog
+	stateOutputDone // command finished, press key to close
 )
 
 type Model struct {
@@ -44,6 +44,11 @@ type Model struct {
 
 	// Status bar
 	statusMsg string
+
+	// Per-card processing state: entryKey -> label of the command in flight.
+	// Lets fire-and-forget commands run concurrently while showing a spinner
+	// on the affected card and blocking further commands on that same card.
+	processing map[string]string
 
 	// Program reference (for sending messages from goroutines)
 	program **tea.Program
@@ -77,6 +82,7 @@ func NewModel(cfg *config.Config) Model {
 		textInput:   ti,
 		help:        help.New(),
 		program:     pp,
+		processing:  make(map[string]string),
 	}
 }
 

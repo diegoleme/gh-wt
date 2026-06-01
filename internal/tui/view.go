@@ -14,15 +14,15 @@ import (
 
 // Nerd Font icons
 const (
-	iconBranch      = "\ue0a0" //
-	iconIssueOpen   = "\uf41b" //
-	iconPR          = "\ue728" //
-	iconCheckPass   = "\uf00c" //
-	iconCheckFail   = "\uf00d" //
-	iconMerged      = "\ue727" //
-	iconReview      = "\uf4a6" //
-	iconFolder      = "\uf07b" //
-	iconPending     = "\uf252" //
+	iconBranch    = "\ue0a0" //
+	iconIssueOpen = "\uf41b" //
+	iconPR        = "\ue728" //
+	iconCheckPass = "\uf00c" //
+	iconCheckFail = "\uf00d" //
+	iconMerged    = "\ue727" //
+	iconReview    = "\uf4a6" //
+	iconFolder    = "\uf07b" //
+	iconPending   = "\uf252" //
 )
 
 var (
@@ -51,6 +51,8 @@ var (
 			PaddingLeft(1).
 			MarginLeft(2).
 			MarginBottom(1)
+
+	processingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#8957e5"))
 
 	titleBold      = lipgloss.NewStyle().Bold(true)
 	statusBarStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#848d97"))
@@ -115,11 +117,11 @@ func (m Model) overlay(base, dialog string) string {
 
 var (
 	sectionHeaderStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color("#c9d1d9")).
-				MarginLeft(3).
-				MarginTop(1).
-				MarginBottom(1)
+		Bold(true).
+		Foreground(lipgloss.Color("#c9d1d9")).
+		MarginLeft(3).
+		MarginTop(1).
+		MarginBottom(1)
 )
 
 func sectionLabel(section string, count int) string {
@@ -241,6 +243,12 @@ func (m Model) renderCard(e listutil.Entry, selected bool) string {
 		lines[1] = style.Dim.Render("no worktree")
 		// Line 3: PR info (might still have a PR if branch exists without worktree — unlikely but safe)
 		lines[2] = m.cardPRLine(e)
+	}
+
+	// While a command runs on this card, replace the middle line with a
+	// spinner so the user gets feedback (the open command has no output dialog).
+	if label := m.processing[entryKey(&e)]; label != "" {
+		lines[1] = fmt.Sprintf("%s %s", m.spinner.View(), processingStyle.Render(label+"…"))
 	}
 
 	// Truncate lines to fit card width (accounting for border + padding)

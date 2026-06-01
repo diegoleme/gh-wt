@@ -42,6 +42,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case commandFinishedMsg:
+		if msg.entryKey != "" {
+			delete(m.processing, msg.entryKey)
+		}
 		if m.state == stateOutput {
 			// Output dialog mode — show done state
 			m.outputDone = true
@@ -58,7 +61,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = stateLoading
 			return m, tea.Batch(m.spinner.Tick, loadEntries)
 		}
-		m.state = stateList
+		// Fire-and-forget commands run in the background without changing
+		// state, and may finish while the list is reloading or another dialog
+		// is open. Leave the current state untouched so we don't yank the user
+		// out of it; only the status bar and the card's spinner update.
 		return m, nil
 
 	case tea.KeyMsg:
@@ -170,6 +176,15 @@ func (m Model) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) executeKeybinding(kb *config.Keybinding) (tea.Model, tea.Cmd) {
 	entry := m.selectedEntry()
 
+	// Block any command on a card that already has one in flight, so the user
+	// can't, e.g., fire "open" twice on the same issue. Other cards stay free.
+	if key := entryKey(entry); key != "" {
+		if running, ok := m.processing[key]; ok {
+			m.statusMsg = fmt.Sprintf("⏳ %s in progress on this issue", running)
+			return m, nil
+		}
+	}
+
 	// Check requires
 	if !checkRequires(*kb, entry) {
 		m.statusMsg = fmt.Sprintf("✗ %s: requires %s", kb.Label, strings.Join(kb.Requires, ", "))
@@ -224,8 +239,15 @@ func (m Model) runCommand(kb *config.Keybinding, input string) (tea.Model, tea.C
 		return m, execInteractive(kb.Label, resolved)
 	}
 
-	// Default: fire and forget (no output capture, no terminal handoff)
-	return m, execFireAndForget(kb.Label, resolved)
+	// Default: fire and forget (no output capture, no terminal handoff).
+	// Mark the card as processing so it shows a spinner and rejects further
+	// commands until this one finishes; the key lets it run concurrently with
+	// open commands on other cards.
+	key := entryKey(entry)
+	if key != "" {
+		m.processing[key] = kb.Label
+	}
+	return m, execFireAndForget(kb.Label, key, resolved)
 }
 
 func (m Model) handleInputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
