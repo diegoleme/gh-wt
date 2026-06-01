@@ -6,17 +6,19 @@
 
 tui:
   keybindings:
-    - key: s
-      label: "start"
-      command: "gh wt start {{.IssueNumber}}"
-      output: true
-
+    # <enter> is unified: if the issue has no worktree yet it runs
+    # `gh wt start` first (which prints the new worktree path), then opens a
+    # claude pane for it. If a worktree already exists it opens/focuses the
+    # pane resuming the latest claude session (--resume -> claude -r).
+    # The leading '#' is quoted so sh doesn't read it as a comment.
     - key: enter
       label: "open"
-      requires:
-        - worktree
-      # The leading '#' is quoted so sh doesn't read it as a comment.
-      command: "~/.config/gh-wt/open-or-focus.sh '#'{{.IssueNumber}}-{{.IssueTitle}} {{.Path}}"
+      command: |
+        if [ -n {{.Branch}} ]; then
+          ~/.config/gh-wt/open-or-focus.sh --resume '#{{.IssueNumber}} '{{.IssueTitle}} {{.Path}}
+        else
+          WT=$(gh wt start {{.IssueNumber}}) && ~/.config/gh-wt/open-or-focus.sh '#{{.IssueNumber}} '{{.IssueTitle}} "$WT"
+        fi
 
     - key: d
       label: "delete"
