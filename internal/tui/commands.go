@@ -18,7 +18,24 @@ func loadEntries() tea.Msg {
 	return entriesLoadedMsg{entries: entries, err: err}
 }
 
-// resolveCommand resolves template variables in a command string.
+// shellQuote wraps s in single quotes safe for POSIX shells, escaping any
+// embedded single quotes via the standard '\'' trick. Used internally by
+// shellSafe so template authors don't have to think about it.
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// shellSafe is a string that renders itself shell-quoted when formatted by
+// text/template (which uses fmt's %v / %s verbs and honors fmt.Stringer).
+// String values exposed to user templates are wrapped in this type so that
+// {{.X}} substitutions are always safe to feed to `sh -c`, regardless of
+// whether the value contains spaces, quotes, or other shell metacharacters.
+type shellSafe string
+
+func (s shellSafe) String() string { return shellQuote(string(s)) }
+
+// resolveCommand resolves template variables in a command string. String
+// values are auto-quoted; numeric values are interpolated raw.
 func resolveCommand(cmdTemplate string, entry *listutil.Entry, input string) (string, error) {
 	tmpl, err := template.New("cmd").Parse(cmdTemplate)
 	if err != nil {
@@ -26,20 +43,20 @@ func resolveCommand(cmdTemplate string, entry *listutil.Entry, input string) (st
 	}
 
 	data := map[string]interface{}{
-		"Branch":      "",
-		"Path":        "",
+		"Branch":      shellSafe(""),
+		"Path":        shellSafe(""),
 		"IssueNumber": 0,
-		"IssueTitle":  "",
+		"IssueTitle":  shellSafe(""),
 		"PRNumber":    0,
-		"Input":       input,
+		"Input":       shellSafe(input),
 	}
 
 	if entry != nil {
 		absPath, _ := filepath.Abs(entry.Path)
-		data["Branch"] = entry.Branch
-		data["Path"] = absPath
+		data["Branch"] = shellSafe(entry.Branch)
+		data["Path"] = shellSafe(absPath)
 		data["IssueNumber"] = entry.IssueNumber
-		data["IssueTitle"] = entry.IssueTitle
+		data["IssueTitle"] = shellSafe(entry.IssueTitle)
 		data["PRNumber"] = entry.PRNumber
 	}
 

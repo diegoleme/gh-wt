@@ -90,14 +90,33 @@ hooks:
 
 ## Template variables
 
-| Variable | Description |
-|---|---|
-| `{{.Branch}}` | Branch name |
-| `{{.Path}}` | Worktree absolute path |
-| `{{.IssueNumber}}` | Issue number |
-| `{{.IssueTitle}}` | Issue title |
-| `{{.PRNumber}}` | PR number |
-| `{{.Input}}` | User input from `input` prompt |
+| Variable | Type | Description |
+|---|---|---|
+| `{{.Branch}}` | string | Branch name |
+| `{{.Path}}` | string | Worktree absolute path |
+| `{{.IssueTitle}}` | string | Issue title |
+| `{{.Input}}` | string | User input from `input` prompt |
+| `{{.IssueNumber}}` | int | Issue number |
+| `{{.PRNumber}}` | int | PR number |
+
+Commands are executed via `sh -c`, so values would normally need shell quoting.
+gh-wt does this for you: **string variables are auto-escaped** and rendered
+already wrapped in single quotes, so `{{.IssueTitle}}` is always one shell
+argument, even if the title contains spaces, apostrophes, `$`, backticks, etc.
+Integer variables are interpolated raw so they work in arithmetic comparisons.
+
+```yaml
+# Always safe — no manual quoting needed:
+command: "open-pane.sh '#'{{.IssueNumber}}-{{.IssueTitle}} {{.Path}}"
+command: "git worktree remove {{.Path}} --force && git branch -D {{.Branch}}"
+command: "if [ {{.PRNumber}} -gt 0 ]; then gh pr view {{.PRNumber}}; fi"
+
+# Don't add your own quotes around string variables — they're already quoted:
+command: "echo '{{.Branch}}'"   # renders as: echo ''main''  (works, but ugly)
+
+# A leading literal '#' must be quoted (in YAML or shell) so sh doesn't read it
+# as the start of a comment — this is a shell rule, unrelated to gh-wt.
+```
 
 ## Tech stack
 
